@@ -1,2 +1,3 @@
-Local dev server:
-```python -m http.server 8000```
+Minesweeper clone, now with a rad "party mode" button.
+
+Available at: https://rashkov.github.io/mineswiffer/ 

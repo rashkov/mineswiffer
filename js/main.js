@@ -8,9 +8,11 @@ let quad_width = 16,
     quad_height = 16,
     canvas_width = 512,
     canvas_height = 512,
-    grid;
+    grid,
+    firstTurn;
 
 function generateBoard(){
+  firstTurn = true;
   // Clear the board
   grid = {};
   // Initialize grid data structure. Add random mine locations
@@ -26,15 +28,15 @@ function generateBoard(){
       // Chance of mines, watch yr step
       let contains_mine = (Math.floor(Math.random()*100) <= 50) ? true : false;
       // update grid
-      console.log(quad_offset_x, quad_offset_y, upper_left_x, upper_left_y);
       grid[`${quad_offset_x}_${quad_offset_y}`] = {
         grid_x: quad_offset_x,
         grid_y: quad_offset_y,
         canvas_upper_left_x: upper_left_x,
         canvas_upper_left_y: upper_left_y,
+        flagged: false,
         contains_mine
       };
-      if(contains_mine){
+      if(contains_mine && partyMode){
         ctx.fillRect(upper_left_x+1, upper_left_y+1, quad_width-1, quad_width-1);
       }
       ctx.font = "6px Arial";
@@ -43,6 +45,7 @@ function generateBoard(){
 }
 
 function clickHandler(evt){
+  evt.preventDefault();
   let x = evt.offsetX;
   let y = evt.offsetY;
   // Translate pixel offset to a quadrant offset
@@ -50,6 +53,13 @@ function clickHandler(evt){
   let quad_offset_x = Math.floor(x/quad_width);
   let quad_offset_y = Math.floor(y/quad_width);
   let grid_key = `${quad_offset_x}_${quad_offset_y}`;
+
+  // First move freebie: clear any mine, otherwise things get frustrating with 50% of the board full of mines
+  if(firstTurn){
+    firstTurn = false;
+    grid[grid_key].contains_mine = false;
+  }
+
   if(grid[grid_key].contains_mine){
     alert('boom');
     drawGrid();
@@ -59,6 +69,43 @@ function clickHandler(evt){
     // flood fill to the edges
     floodFill(grid_key);
   }
+}
+
+function rightClickHandler(evt){
+  evt.preventDefault();
+  let x = evt.offsetX;
+  let y = evt.offsetY;
+  // Translate pixel offset to a quadrant offset
+  // (ie, top-left quadrant is at 0,0, the one next to it is 1,0, the one below that is 1,1)
+  let quad_offset_x = Math.floor(x/quad_width);
+  let quad_offset_y = Math.floor(y/quad_width);
+  let grid_key = `${quad_offset_x}_${quad_offset_y}`;
+  let node = grid[grid_key];
+  let { canvas_upper_left_x, canvas_upper_left_y } = node;
+
+  // Toggle flag
+  // grid[grid_key].flagged = !grid[grid_key].flagged
+  // Draw flag
+  node.flagged = !node.flagged;
+  if(node.flagged){
+    ctx.fillStyle = 'rgb(200, 0, 0)';
+    ctx.font = "12px Arial";
+    ctx.fillText('X',canvas_upper_left_x + 4,canvas_upper_left_y + 12);
+  }else{
+    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+    ctx.fillRect(canvas_upper_left_x+1, canvas_upper_left_y+1, quad_width-2, quad_width-2);
+  }
+
+  // Prevent victory if it's incorrectly flagged
+  // if(!grid[grid_key].contains_mine){
+  //   alert('boom');
+  //   drawGrid();
+  //   generateBoard();
+  // }else{
+  //   // no mine
+  //   // flood fill to the edges
+  //   floodFill(grid_key);
+  // }
 }
 
 function floodFill(grid_key){
@@ -93,9 +140,9 @@ function floodFill(grid_key){
   adjacent_mines += ( right && right.contains_mine ? 1 : 0 );
   adjacent_mines += ( up && up.contains_mine ? 1 : 0 );
   adjacent_mines += ( down && down.contains_mine ? 1 : 0 );
-  console.log(grid_x, grid_y, adjacent_mines);
   if(adjacent_mines != 0){
     ctx.font = "12px Arial";
+    ctx.fillStyle = 'rgb(0, 0, 0, 1)';
     ctx.fillText(adjacent_mines,canvas_upper_left_x + 4,canvas_upper_left_y + 12);
     // ctx.fillText(`${grid_x},${grid_y}`,canvas_upper_left_x,canvas_upper_left_y + 12);
   }
@@ -125,11 +172,13 @@ function drawGrid(){
 
   canvas.removeEventListener('click', clickHandler);
   canvas.addEventListener('click', clickHandler);
+  canvas.removeEventListener('contextmenu', rightClickHandler);
+  canvas.addEventListener('contextmenu', rightClickHandler);
 }
 
+let partyMode = false;
 function bindPartyButton(){
   let btn = document.getElementById('party-mode');
-  let partyMode = false;
   btn.addEventListener('click', (evt)=>{
     partyMode = !partyMode;
   });

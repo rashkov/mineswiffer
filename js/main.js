@@ -68,6 +68,9 @@ function clickHandler(evt){
     // no mine
     // flood fill to the edges
     floodFill(grid_key);
+    if(checkVictory()){
+      alert('Victory!');
+    };
   }
 }
 
@@ -140,18 +143,35 @@ function floodFill(grid_key){
   adjacent_mines += ( right && right.contains_mine ? 1 : 0 );
   adjacent_mines += ( up && up.contains_mine ? 1 : 0 );
   adjacent_mines += ( down && down.contains_mine ? 1 : 0 );
-  if(adjacent_mines != 0){
+  //if(adjacent_mines != 0){
     ctx.font = "12px Arial";
     ctx.fillStyle = 'rgb(0, 0, 0, 1)';
     ctx.fillText(adjacent_mines,canvas_upper_left_x + 4,canvas_upper_left_y + 12);
     // ctx.fillText(`${grid_x},${grid_y}`,canvas_upper_left_x,canvas_upper_left_y + 12);
-  }
+  //}
 
   // then flood south, north, east, and west if those are valid grid points
   left && floodFill(left_key);
   right && floodFill(right_key);
   up && floodFill(up_key);
   down && floodFill(down_key);
+}
+
+// return true if every node either has a mine OR it has been visited
+function checkVictory(){
+  let victorySatisfied = true;
+  let node, visited, has_mine;
+  // walk the grid
+  Object.keys(grid).forEach(function(key){
+    // check if there are any nodes which don't have a mine but haven't been visited
+    node = grid[key];
+    visited = node.visited;
+    contains_mine = node.contains_mine;
+    if (!contains_mine && !visited){
+      victorySatisfied = false;
+    }
+  });
+  return victorySatisfied;
 }
 
 function drawGrid(){
